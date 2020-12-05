@@ -17,7 +17,7 @@ typedef struct {
     char oem[8];
     unsigned short sector_size;
 
-//desde el byte 13 (incluído)
+//desde el byte 13 (incluï¿½do)
 	// {...} COMPLETAR
     unsigned char sectores_por_cluster;
     unsigned short reserved_sectors;
@@ -35,7 +35,7 @@ typedef struct {
     unsigned char sin_uso;
     unsigned char extended_boot_signature;
 
-//hasta el byte 38 (incluído)
+//hasta el byte 38 (incluï¿½do)
 
     char volume_id[4];
     char volume_label[11];
@@ -72,7 +72,7 @@ void print_file_info(Fat12Entry *entry, FILE * in) {
         return;
     case 0x05: 
         printf("File starting with 0xE5: [%c%.7s.%.3s]\n\n", 0xE5, &entry->filename[1], &entry->filename[8]);
-	printf("File: [%.7s.%.3s]\n", &entry->filename[0], &entry->filename[8]);
+	    printf("File: [%.7s.%.3s]\n", &entry->filename[0], &entry->filename[8]);
 		uint32_t  sizeOfFile = 0;
 		//Calculo el tamanio del archivo
 		for (int i = 3; i >= 0; i--){
@@ -87,13 +87,26 @@ void print_file_info(Fat12Entry *entry, FILE * in) {
 			cluster<<=8;
 			cluster |=  entry->first_cluster_address_low[i];
 		}
+        
+		Fat12Entry entrada; 
+        Fat12BootSector bs;
+        fseek(in, 0, SEEK_SET);
+        fread(&bs, sizeof(Fat12BootSector), 1, in);
+
+        int data_region_offset = bs.reserved_sectors + (bs.number_of_fats * bs.fat_size_sectors) + (bs.root_dir_entries * sizeof(entrada) / bs.sector_size);
+        int offset_file_cluster = ((cluster - 2) * (bs.sectores_por_cluster * bs.sector_size));
+
+        
 		//Si el cluster inicial y el tamanio del archivo son mayores que cero, lo intentara leer
 		if (cluster > 0 && sizeOfFile > 0){
+
 			unsigned char contenidoArchivo[sizeOfFile];
 			unsigned int punteroActual = (unsigned int) ftell(in);
-			fseek(in, 0x4200 + ((cluster - 1) * 0x800), SEEK_SET);			//Salta a la posicion del contenido del archivo, dada por el nro del cluster
+			
+            fseek(in, (data_region_offset + offset_file_cluster), SEEK_SET);			//Salta a la posicion del contenido del archivo, dada por el nro del cluster
 			fread(contenidoArchivo, sizeof(unsigned char), sizeOfFile, in);		//Lee una cantidad de bytes dada por el tamanio del archivo
-			printf("\nContenido del Archivo:\n");
+			
+            printf("\nContenido del Archivo:\n");
 			for(int i = 0; i < sizeOfFile; i++){
 				printf("%c",contenidoArchivo[i]);
 			}
@@ -126,7 +139,7 @@ void print_file_info(Fat12Entry *entry, FILE * in) {
 		if (cluster > 0 && sizeOfFile > 0){
 			unsigned char contenidoArchivo[sizeOfFile];
 			unsigned int punteroActual = (unsigned int) ftell(in);
-			fseek(in, 0x4200 + ((cluster - 1) * 0x800), SEEK_SET);
+			fseek(in, (data_region_offset + offset_file_cluster), SEEK_SET);
 			fread(contenidoArchivo, sizeof(unsigned char), sizeOfFile, in);
 			printf("\nContenido del Archivo:\n");
 			for(int i = 0; i < sizeOfFile; i++){

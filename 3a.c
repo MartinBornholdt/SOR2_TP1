@@ -17,7 +17,7 @@ typedef struct {
     char oem[8];
     unsigned short sector_size;
 
-//desde el byte 13 (incluído)
+    //desde el byte 13 (incluï¿½do)
 	// {...} COMPLETAR
     unsigned char sectores_por_cluster;
     unsigned short reserved_sectors;
@@ -35,7 +35,7 @@ typedef struct {
     unsigned char sin_uso;
     unsigned char extended_boot_signature;
 
-//hasta el byte 38 (incluído)
+    //hasta el byte 38 (incluï¿½do)
 
     char volume_id[4];
     char volume_label[11];
@@ -60,6 +60,8 @@ typedef struct {
 	char first_cluster_address_low[2];
 	char size_of_file[4];
 } __attribute((packed)) Fat12Entry;
+
+
 
 void print_file_info(Fat12Entry *entry, FILE * in) {
 //	char subbuff[3];
@@ -87,10 +89,28 @@ void print_file_info(Fat12Entry *entry, FILE * in) {
 			cluster |=  entry->first_cluster_address_low[i];
 		}
 		if (cluster > 0){
-			Fat12Entry entrada;
+			Fat12Entry entrada;     
+            
+            FILE * in = fopen("test.img", "rb");
+            PartitionTable pt[4];
+            Fat12BootSector bs;
+            Fat12Entry entry;
+
+            //fseek(in, 0x1BE, SEEK_SET); // go to partition table start
+            //fread(pt, sizeof(PartitionTable), 4, in); // read all four entries
+
+            fseek(in, 0, SEEK_SET);
+            fread(&bs, sizeof(Fat12BootSector), 1, in);
+
+            int data_region_offset = bs.reserved_sectors + (bs.number_of_fats * bs.fat_size_sectors) + (bs.root_dir_entries * sizeof(entrada) / bs.sector_size);
+            int offset_file_cluster = ((cluster - 2) * (bs.sectores_por_cluster * bs.sector_size));
+
 			unsigned int punteroActual = (unsigned int) ftell(in);
-			fseek(in, 0x4200 + ((cluster - 1) * 0x800), SEEK_SET);			//Salta a la posicion del contenido del archivo, dada por el nro del cluster
-			for (int indice = 0; indice < (0x800 / sizeof(entrada)); indice++){
+
+			//fseek(in, 0x4200 + ((cluster - 1) * 0x800), SEEK_SET);			//Salta a la posicion del contenido del archivo, dada por el nro del cluster
+			
+            fseek(in, data_region_offset + offset_file_cluster, SEEK_SET);
+            for (int indice = 0; indice < ( (bs.sectores_por_cluster * bs.sector_size) / sizeof(entrada)); indice++){
 				fread(&entrada, sizeof(entrada), 1, in);
 				print_file_info(&entrada, in);
 			}

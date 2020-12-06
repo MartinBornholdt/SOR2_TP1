@@ -63,7 +63,7 @@ typedef struct {
 
 
 
-void print_file_info(Fat12Entry *entry, FILE * in) {
+void print_file_info(Fat12Entry *entry, FILE *in) {
 //	char subbuff[3];
     switch(entry->filename[0]) {
 //    switch(entry->first_character) {
@@ -89,27 +89,21 @@ void print_file_info(Fat12Entry *entry, FILE * in) {
 			cluster |=  entry->first_cluster_address_low[i];
 		}
 		if (cluster > 0){
-			Fat12Entry entrada;     
+            FILE  * in = fopen("test.img", "rb");
             
-            FILE * in = fopen("test.img", "rb");
-            PartitionTable pt[4];
             Fat12BootSector bs;
-            Fat12Entry entry;
-
-            //fseek(in, 0x1BE, SEEK_SET); // go to partition table start
-            //fread(pt, sizeof(PartitionTable), 4, in); // read all four entries
+            Fat12Entry entrada;
 
             fseek(in, 0, SEEK_SET);
             fread(&bs, sizeof(Fat12BootSector), 1, in);
-
-            int data_region_offset = bs.reserved_sectors + (bs.number_of_fats * bs.fat_size_sectors) + (bs.root_dir_entries * sizeof(entrada) / bs.sector_size);
+            
+            int data_region_offset = (bs.reserved_sectors + (bs.number_of_fats * bs.fat_size_sectors) + (bs.root_dir_entries * sizeof(entrada) / bs.sector_size)) * bs.sector_size;
             int offset_file_cluster = ((cluster - 2) * (bs.sectores_por_cluster * bs.sector_size));
+            
+            unsigned int punteroActual = (unsigned int) ftell(in);
 
-			unsigned int punteroActual = (unsigned int) ftell(in);
-
-			//fseek(in, 0x4200 + ((cluster - 1) * 0x800), SEEK_SET);			//Salta a la posicion del contenido del archivo, dada por el nro del cluster
-			
-            fseek(in, data_region_offset + offset_file_cluster, SEEK_SET);
+			fseek(in, data_region_offset + offset_file_cluster, SEEK_SET);
+            
             for (int indice = 0; indice < ( (bs.sectores_por_cluster * bs.sector_size) / sizeof(entrada)); indice++){
 				fread(&entrada, sizeof(entrada), 1, in);
 				print_file_info(&entrada, in);
